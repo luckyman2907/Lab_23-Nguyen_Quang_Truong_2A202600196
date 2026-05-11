@@ -1,0 +1,102 @@
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    LangGraph Agent Workflow Architecture                   ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+                                  ┌─────────┐
+                                  │  START  │
+                                  └────┬────┘
+                                       │
+                                       ▼
+                                  ┌─────────┐
+                                  │ intake  │
+                                  └────┬────┘
+                                       │
+                                       ▼
+                                  ┌──────────┐
+                                  │ classify │
+                                  └────┬─────┘
+                                       │
+                    ┌──────────────────┼──────────────────┐
+                    │                  │                  │
+                    ▼                  ▼                  ▼
+              ┌─────────┐        ┌─────────┐       ┌──────────┐
+              │ simple  │        │  tool   │       │  risky   │
+              └────┬────┘        └────┬────┘       └────┬─────┘
+                   │                  │                  │
+                   │                  ▼                  ▼
+                   │            ┌──────────┐      ┌──────────────┐
+                   │            │ evaluate │      │ risky_action │
+                   │            └────┬─────┘      └──────┬───────┘
+                   │                 │                    │
+                   │        ┌────────┴────────┐           ▼
+                   │        │                 │     ┌──────────┐
+                   │        ▼                 ▼     │ approval │
+                   │   ┌────────┐       ┌────────┐ └────┬─────┘
+                   │   │ retry  │       │success │      │
+                   │   └───┬────┘       └───┬────┘      │
+                   │       │                │            │
+                   │       │◄───────────────┘            │
+                   │       │                             │
+                   │       ▼                             ▼
+                   │  ┌─────────┐                  ┌─────────┐
+                   │  │  tool   │◄─────────────────┤ (tool)  │
+                   │  └────┬────┘                  └─────────┘
+                   │       │
+                   │       ▼
+                   │  ┌──────────┐
+                   │  │ evaluate │
+                   │  └────┬─────┘
+                   │       │
+                   │  ┌────┴────┐
+                   │  │         │
+                   │  ▼         ▼
+                   │ retry   success
+                   │  │         │
+                   │  └─────────┤
+                   │            │
+                   ▼            ▼
+              ┌─────────┐  ┌─────────┐
+              │ answer  │  │ answer  │
+              └────┬────┘  └────┬────┘
+                   │            │
+                   └──────┬─────┘
+                          │
+                          ▼
+                    ┌──────────┐
+                    │ finalize │
+                    └────┬─────┘
+                         │
+                         ▼
+                    ┌─────────┐
+                    │   END   │
+                    └─────────┘
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                              Key Features                                   ║
+╠════════════════════════════════════════════════════════════════════════════╣
+║ • Priority-based routing (risky > tool > missing_info > error > simple)    ║
+║ • Bounded retry loop (max_attempts prevents infinite loops)                ║
+║ • HITL approval for risky actions (interrupt-based)                        ║
+║ • Dead letter queue for unresolvable failures                              ║
+║ • All paths terminate at finalize → END                                    ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                           Routing Conditions                                ║
+╠════════════════════════════════════════════════════════════════════════════╣
+║ classify → simple:       Default route (informational queries)             ║
+║ classify → tool:         Keywords: status, order, lookup, check, track     ║
+║ classify → missing_info: Short queries (<5 words) with vague pronouns      ║
+║ classify → risky:        Keywords: refund, delete, send, cancel, remove    ║
+║ classify → error:        Keywords: timeout, fail, error, crash             ║
+║                                                                             ║
+║ evaluate → retry:        Tool result contains "ERROR"                      ║
+║ evaluate → answer:       Tool result is satisfactory                       ║
+║                                                                             ║
+║ retry → tool:            attempt < max_attempts                            ║
+║ retry → dead_letter:     attempt >= max_attempts                           ║
+║                                                                             ║
+║ approval → tool:         approved = true                                   ║
+║ approval → clarify:      approved = false                                  ║
+╚════════════════════════════════════════════════════════════════════════════╝

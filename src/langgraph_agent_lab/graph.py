@@ -6,7 +6,7 @@ that check schema/metrics can run even if students are still debugging graph wir
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .nodes import (
     answer_node,
@@ -21,11 +21,19 @@ from .nodes import (
     risky_action_node,
     tool_node,
 )
-from .routing import route_after_approval, route_after_classify, route_after_evaluate, route_after_retry
+from .routing import (
+    route_after_approval,
+    route_after_classify,
+    route_after_evaluate,
+    route_after_retry,
+)
 from .state import AgentState
 
+if TYPE_CHECKING:
+    from langgraph.graph.graph import CompiledGraph  # type: ignore[import-not-found]
 
-def build_graph(checkpointer: Any | None = None):
+
+def build_graph(checkpointer: Any | None = None) -> CompiledGraph:  # type: ignore[name-defined,type-arg]
     """Build and compile the LangGraph workflow.
 
     TODO(student): review the architecture and modify nodes/edges only with a clear reason.
@@ -40,7 +48,9 @@ def build_graph(checkpointer: Any | None = None):
     try:
         from langgraph.graph import END, START, StateGraph
     except Exception as exc:  # pragma: no cover - helpful install error
-        raise RuntimeError("LangGraph is required. Run: pip install -e '.[dev]' or pip install langgraph") from exc
+        raise RuntimeError(
+            "LangGraph is required. Run: pip install -e '.[dev]' or pip install langgraph"
+        ) from exc
 
     graph = StateGraph(AgentState)
     graph.add_node("intake", intake_node)
