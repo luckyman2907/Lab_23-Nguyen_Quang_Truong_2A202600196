@@ -2,7 +2,7 @@
 
 ## 1. Team / student
 
-- **Name**: Nguyễn Quang Trường
+- **Name**: Nguyễn Quang Trường-2A202600196
 - **Repo**: https://github.com/luckyman2907/Lab_23-Nguyen_Quang_Truong_2A202600196
 - **Date**: 2026-05-11
 
